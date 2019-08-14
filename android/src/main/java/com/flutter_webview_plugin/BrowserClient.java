@@ -2,12 +2,19 @@ package com.flutter_webview_plugin;
 
 import android.annotation.TargetApi;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.os.Build;
+import android.os.Environment;
+import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -19,6 +26,8 @@ import java.util.regex.Pattern;
 
 public class BrowserClient extends WebViewClient {
     private Pattern invalidUrlPattern = null;
+
+    private WebView webView;
 
     public BrowserClient() {
         this(null);
@@ -46,6 +55,8 @@ public class BrowserClient extends WebViewClient {
         data.put("url", url);
         data.put("type", "startLoad");
         FlutterWebviewPlugin.channel.invokeMethod("onState", data);
+
+        this.webView = view;
     }
 
     @Override
@@ -58,7 +69,6 @@ public class BrowserClient extends WebViewClient {
 
         data.put("type", "finishLoad");
         FlutterWebviewPlugin.channel.invokeMethod("onState", data);
-
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)

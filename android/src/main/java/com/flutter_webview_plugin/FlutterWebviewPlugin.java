@@ -4,6 +4,7 @@ package com.flutter_webview_plugin;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.view.Display;
 import android.widget.FrameLayout;
@@ -11,6 +12,7 @@ import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
 import android.os.Build;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
 import io.flutter.plugin.common.MethodCall;
@@ -30,7 +32,7 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
 
     public static void registerWith(PluginRegistry.Registrar registrar) {
         channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
-        final FlutterWebviewPlugin instance = new FlutterWebviewPlugin(registrar.activity(),registrar.activeContext());
+        final FlutterWebviewPlugin instance = new FlutterWebviewPlugin(registrar.activity(), registrar.activeContext());
         registrar.addActivityResultListener(instance);
         channel.setMethodCallHandler(instance);
     }
@@ -79,9 +81,23 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
             case "cleanCookies":
                 cleanCookies(call, result);
                 break;
+            case "takeScreenshot":
+                takeScreenshot(call, result);
             default:
                 result.notImplemented();
                 break;
+        }
+    }
+
+    private void takeScreenshot(MethodCall call, MethodChannel.Result result) {
+        try {
+            Bitmap screenshot = webViewManager.getScreenshot();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            screenshot.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            byte[] byteArray = stream.toByteArray();
+            result.success(byteArray);
+        } catch (Exception e) {
+            result.error("ERROR", e.toString(), null);
         }
     }
 
