@@ -3,11 +3,13 @@ package com.flutter_webview_plugin;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Picture;
 import android.net.Uri;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -249,12 +251,26 @@ class WebviewManager {
         });
     }
 
-    //Taken from https://stackoverflow.com/a/22451337
     Bitmap getScreenshot() {
-        Bitmap bitmap = Bitmap.createBitmap(this.webView.getWidth(), this.webView.getHeight(), Bitmap.Config.ARGB_8888);
+        float bitmapHeight = Math.max(webView.getHeight(),
+                webView.getContentHeight() *
+                        webView.getScaleY() *
+                        webView.getResources().getDisplayMetrics().density);
+
+        Bitmap bitmap = Bitmap.createBitmap(
+                webView.getWidth(), (int) bitmapHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        this.webView.draw(canvas);
-        return bitmap;
+        webView.draw(canvas);
+
+        float scrollOffsetY = (webView.getScrollY() + webView.getHeight() > bitmap.getHeight()) ?
+                bitmapHeight - webView.getHeight() : webView.getScrollY();
+
+        return Bitmap.createBitmap(
+                bitmap,
+                0,
+                (int) scrollOffsetY,
+                webView.getWidth(),
+                webView.getHeight());
     }
 
     private Uri getOutputFilename(String intentType) {

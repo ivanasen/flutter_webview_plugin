@@ -282,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 );
               },
-              child: const Text('Take screenshot and close'),
+              child: const Text('Take screenshot and hide'),
             ),
             RaisedButton(
               onPressed: () {
