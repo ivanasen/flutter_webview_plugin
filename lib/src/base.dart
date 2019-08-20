@@ -226,6 +226,18 @@ class FlutterWebviewPlugin {
   Future<Uint8List> takeScreenshot() async =>
       await _channel.invokeMethod('takeScreenshot');
 
+  // Translate the webview with animation
+  Future<void> translateWithAnimation(
+      int endX, int endY, Duration duration) async {
+    final args = <String, dynamic>{
+      'endX': endX,
+      'endY': endY,
+      'durationMilliseconds': duration.inMilliseconds
+    };
+
+    await _channel.invokeMethod('translateWithAnimation', args);
+  }
+
   /// Close all Streams
   void dispose() {
     _onDestroy.close();

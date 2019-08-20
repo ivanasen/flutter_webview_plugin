@@ -1,8 +1,10 @@
 package com.flutter_webview_plugin;
 
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Path;
 import android.graphics.Picture;
 import android.net.Uri;
 import android.annotation.TargetApi;
@@ -11,6 +13,7 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +27,7 @@ import android.widget.FrameLayout;
 import android.provider.MediaStore;
 
 import androidx.core.content.FileProvider;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
 import android.database.Cursor;
 import android.provider.OpenableColumns;
@@ -288,6 +292,41 @@ class WebviewManager {
                 (int) scrollOffsetY,
                 webView.getWidth(),
                 webView.getHeight());
+    }
+
+    void translateWithAnimation(final int endX, final int endY, final int duration) {
+        float endXPixels = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                endX,
+                context.getResources().getDisplayMetrics()
+        );
+
+        float endYPixels = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                endY,
+                context.getResources().getDisplayMetrics()
+        );
+
+
+        Path path = new Path();
+        path.lineTo(endXPixels, endYPixels);
+        ObjectAnimator animator;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            animator = ObjectAnimator.ofFloat(
+                    webView,
+                    WebView.TRANSLATION_X,
+                    endXPixels
+            );
+        } else {
+            animator = ObjectAnimator.ofFloat(
+                    webView,
+                    WebView.TRANSLATION_X,
+                    endYPixels
+            );
+        }
+        animator.setDuration(duration);
+        animator.setInterpolator(new FastOutSlowInInterpolator());
+        animator.start();
     }
 
     private Uri getOutputFilename(String intentType) {

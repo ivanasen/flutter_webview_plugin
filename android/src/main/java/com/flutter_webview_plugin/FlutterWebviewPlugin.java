@@ -86,10 +86,19 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
                 break;
             case "takeScreenshot":
                 takeScreenshot(call, result);
+            case "translateWithAnimation":
+                translateWithAnimation(call, result);
             default:
                 result.notImplemented();
                 break;
         }
+    }
+
+    private void translateWithAnimation(MethodCall call, MethodChannel.Result result) {
+        int endX = call.argument("endX");
+        int endY = call.argument("endY");
+        int duration = call.argument("durationMilliseconds");
+        webViewManager.translateWithAnimation(endX, endY, duration);
     }
 
     private void takeScreenshot(MethodCall call, MethodChannel.Result result) {
