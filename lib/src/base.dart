@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -32,6 +33,8 @@ class FlutterWebviewPlugin {
   final _onScrollYChanged = StreamController<double>.broadcast();
   final _onProgressChanged = new StreamController<double>.broadcast();
   final _onHttpError = StreamController<WebViewHttpError>.broadcast();
+  final _onScreenshotTaken = StreamController<Uint8List>.broadcast();
+  final _onScrollStopped = StreamController<Point>.broadcast();
 
   Future<Null> _handleMessages(MethodCall call) async {
     switch (call.method) {
@@ -64,8 +67,17 @@ class FlutterWebviewPlugin {
         _onHttpError.add(
             WebViewHttpError(call.arguments['code'], call.arguments['url']));
         break;
+      case 'screenshotTaken':
+        _onScreenshotTaken.add(call.arguments['screenshot']);
+        break;
+      case 'scrollStopped':
+        _onScrollStopped
+            .add(Point(call.arguments['xScroll'], call.arguments['yScroll']));
+        break;
     }
   }
+
+  Stream<Uint8List> get onScreenshotTaken => _onScreenshotTaken.stream;
 
   /// Listening the OnDestroy LifeCycle Event for Android
   Stream<Null> get onDestroy => _onDestroy.stream;
@@ -211,7 +223,7 @@ class FlutterWebviewPlugin {
       await _channel.invokeMethod('stopLoading');
 
   // Get a screenshot of the webview
-  Future<Uint8List> getScreenshot() async =>
+  Future<Uint8List> takeScreenshot() async =>
       await _channel.invokeMethod('takeScreenshot');
 
   /// Close all Streams
@@ -251,6 +263,8 @@ class FlutterWebviewPlugin {
     };
     await _channel.invokeMethod('resize', args);
   }
+
+  Stream<Point> get onScrollStopped => _onScrollStopped.stream;
 }
 
 class WebViewStateChanged {

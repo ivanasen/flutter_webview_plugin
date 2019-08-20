@@ -9,6 +9,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -151,16 +152,32 @@ class WebviewManager {
             }
         });
 
-        ((ObservableWebView) webView).setOnScrollChangedCallback(new ObservableWebView.OnScrollChangedCallback() {
-            public void onScroll(int x, int y, int oldx, int oldy) {
-                Map<String, Object> yDirection = new HashMap<>();
-                yDirection.put("yDirection", (double) y);
-                FlutterWebviewPlugin.channel.invokeMethod("onScrollYChanged", yDirection);
-                Map<String, Object> xDirection = new HashMap<>();
-                xDirection.put("xDirection", (double) x);
-                FlutterWebviewPlugin.channel.invokeMethod("onScrollXChanged", xDirection);
+        final Runnable scrollStoppedRunnable = new Runnable() {
+            public void run() {
+                Map<String, Object> position = new HashMap<>();
+                position.put("xScroll", (double) webView.getScrollX());
+                position.put("yScroll", (double) webView.getScrollY());
+                FlutterWebviewPlugin.channel.invokeMethod(
+                        "scrollStopped", position);
             }
-        });
+        };
+        final Handler handler = new Handler();
+
+        ((ObservableWebView) webView).setOnScrollChangedCallback(
+                new ObservableWebView.OnScrollChangedCallback() {
+                    public void onScroll(int x, int y, int oldX, int oldY) {
+                        Map<String, Object> yDirection = new HashMap<>();
+                        yDirection.put("yDirection", (double) y);
+                        FlutterWebviewPlugin.channel.invokeMethod("onScrollYChanged", yDirection);
+                        Map<String, Object> xDirection = new HashMap<>();
+                        xDirection.put("xDirection", (double) x);
+                        FlutterWebviewPlugin.channel.invokeMethod("onScrollXChanged", xDirection);
+
+
+                        handler.removeCallbacks(scrollStoppedRunnable);
+                        handler.postDelayed(scrollStoppedRunnable, 66);
+                    }
+                });
 
         webView.setWebViewClient(webViewClient);
         webView.setWebChromeClient(new WebChromeClient() {
@@ -251,7 +268,7 @@ class WebviewManager {
         });
     }
 
-    Bitmap getScreenshot() {
+    Bitmap takeScreenshot() {
         float bitmapHeight = Math.max(webView.getHeight(),
                 webView.getContentHeight() *
                         webView.getScaleY() *

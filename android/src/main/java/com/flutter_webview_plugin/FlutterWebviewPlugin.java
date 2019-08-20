@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.os.AsyncTask;
+import android.os.Handler;
 import android.view.Display;
 import android.widget.FrameLayout;
 import android.webkit.CookieManager;
@@ -13,6 +15,7 @@ import android.webkit.ValueCallback;
 import android.os.Build;
 
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.Map;
 
 import io.flutter.plugin.common.MethodCall;
@@ -91,13 +94,19 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
 
     private void takeScreenshot(MethodCall call, MethodChannel.Result result) {
         try {
-            Bitmap screenshot = webViewManager.getScreenshot();
+            final Bitmap screenshot = webViewManager.takeScreenshot();
+
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            screenshot.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            screenshot.compress(Bitmap.CompressFormat.JPEG, 50, stream);
             byte[] byteArray = stream.toByteArray();
-            result.success(byteArray);
-        } catch (Exception e) {
-            result.error("ERROR", e.toString(), null);
+
+            final HashMap<String, byte[]> arguments = new HashMap<>();
+            arguments.put("screenshot", byteArray);
+
+            channel.invokeMethod("screenshotTaken", arguments);
+
+        } catch (Exception ignored) {
+
         }
     }
 

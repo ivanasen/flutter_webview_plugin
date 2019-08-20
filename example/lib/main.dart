@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (_) => const MyHomePage(title: 'Flutter WebView Demo'),
         '/widget': (_) {
-          return WebviewScaffold(
+          return DrawerWebviewScaffold(
+            scaffoldKey: GlobalKey<ScaffoldState>(),
             url: selectedUrl,
             appBar: AppBar(
               title: const Text('Widget WebView'),
@@ -33,12 +34,6 @@ class MyApp extends StatelessWidget {
             withZoom: true,
             withLocalStorage: true,
             hidden: true,
-            initialChild: Container(
-              color: Colors.redAccent,
-              child: const Center(
-                child: Text('Waiting.....'),
-              ),
-            ),
             bottomNavigationBar: BottomAppBar(
               child: Row(
                 children: <Widget>[
@@ -272,7 +267,7 @@ class _MyHomePageState extends State<MyHomePage> {
             RaisedButton(
               onPressed: () async {
                 final Uint8List screenshotByteList =
-                    await flutterWebViewPlugin.getScreenshot();
+                    await flutterWebViewPlugin.takeScreenshot();
                 flutterWebViewPlugin.hide();
                 final Image screenshot = Image.memory(screenshotByteList);
                 showDialog(
