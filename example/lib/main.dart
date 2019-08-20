@@ -77,6 +77,13 @@ class MyApp extends StatelessWidget {
             ),
           );
         },
+        '/stacked-widget': (_) {
+          return StackDrawerScaffold(
+            body: Container(),
+            appBar: const StackDrawerAppBar(),
+            drawer: Drawer(),
+          );
+        }
       },
     );
   }
@@ -255,6 +262,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 Navigator.of(context).pushNamed('/widget');
               },
               child: const Text('Open widget webview'),
+            ),
+            RaisedButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/stacked-widget');
+              },
+              child: const Text('Open Stack Widget Webview'),
             ),
             Container(
               padding: const EdgeInsets.all(24.0),
