@@ -14,6 +14,7 @@ void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   final flutterWebViewPlugin = FlutterWebviewPlugin();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +27,30 @@ class MyApp extends StatelessWidget {
         '/': (_) => const MyHomePage(title: 'Flutter WebView Demo'),
         '/widget': (_) {
           return WebviewScaffold(
+            scaffoldKey: _scaffoldKey,
             url: selectedUrl,
             appBar: AppBar(
               title: const Text('Widget WebView'),
+              leading: TranslatingWebViewMenuButton(
+                scaffoldKey: _scaffoldKey,
+                webViewPlugin: flutterWebViewPlugin,
+              ),
+            ),
+            drawer: Drawer(
+              child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    flutterWebViewPlugin.handleLeftDrawerClosed();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                  )),
             ),
             withZoom: true,
             withLocalStorage: true,
             hidden: true,
             initialChild: Container(
-              color: Colors.redAccent,
               child: const Center(
                 child: Text('Waiting.....'),
               ),

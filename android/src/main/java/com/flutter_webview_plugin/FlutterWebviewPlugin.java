@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.os.Handler;
 import android.view.Display;
 import android.widget.FrameLayout;
 import android.webkit.CookieManager;
@@ -13,6 +14,7 @@ import android.webkit.ValueCallback;
 import android.os.Build;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 import java.util.Map;
 
 import io.flutter.plugin.common.MethodCall;
@@ -83,10 +85,38 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
                 break;
             case "takeScreenshot":
                 takeScreenshot(call, result);
+            case "translate":
+                translate(call, result);
+            case "addJavascriptChannels":
+                addJavascriptChannels(call, result);
+            case "removeJavascriptChannels":
+                removeJavascriptChannels(call, result);
             default:
                 result.notImplemented();
                 break;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addJavascriptChannels(MethodCall call, MethodChannel.Result result) {
+        List<String> channelNames = (List<String>) call.arguments;
+        webViewManager.addJavascriptChannels(channelNames);
+        result.success(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void removeJavascriptChannels(MethodCall call, MethodChannel.Result result) {
+        List<String> channelNames = (List<String>) call.arguments;
+        webViewManager.removeJavascriptChannels(channelNames);
+        result.success(null);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void translate(MethodCall call, MethodChannel.Result result) {
+        int endX = call.argument("endX");
+        int endY = call.argument("endY");
+        int duration = call.argument("durationMilliseconds");
+        webViewManager.translate(endX, endY, duration);
     }
 
     private void takeScreenshot(MethodCall call, MethodChannel.Result result) {
@@ -120,8 +150,9 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
         boolean geolocationEnabled = call.argument("geolocationEnabled");
         boolean debuggingEnabled = call.argument("debuggingEnabled");
 
-        if (webViewManager == null || webViewManager.closed == true) {
-            webViewManager = new WebviewManager(activity, context);
+        if (webViewManager == null || webViewManager.closed) {
+            Handler platformThreadHandler = new Handler(context.getMainLooper());
+            webViewManager = new WebviewManager(activity, context, channel, platformThreadHandler);
         }
 
         FrameLayout.LayoutParams params = buildLayoutParams(call);

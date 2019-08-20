@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_webview_plugin/src/javascript_channel.dart';
 
 const _kChannel = 'flutter_webview_plugin';
 
@@ -14,6 +15,10 @@ enum WebViewState { shouldStart, startLoad, finishLoad, abortLoad }
 
 /// Singleton class that communicate with a Webview Instance
 class FlutterWebviewPlugin {
+  static const int _drawerCloseAnimationMillis = 200;
+  static const int _drawerOpenAnimationMillis = 270;
+  static const int _drawerWidth = 304;
+
   factory FlutterWebviewPlugin() => _instance ??= FlutterWebviewPlugin._();
 
   FlutterWebviewPlugin._() {
@@ -32,6 +37,10 @@ class FlutterWebviewPlugin {
   final _onScrollYChanged = StreamController<double>.broadcast();
   final _onProgressChanged = new StreamController<double>.broadcast();
   final _onHttpError = StreamController<WebViewHttpError>.broadcast();
+
+  // Maps a channel name to a channel.
+  final Map<String, JavascriptChannel> _javascriptChannels =
+      <String, JavascriptChannel>{};
 
   Future<Null> _handleMessages(MethodCall call) async {
     switch (call.method) {
@@ -64,6 +73,10 @@ class FlutterWebviewPlugin {
         _onHttpError.add(
             WebViewHttpError(call.arguments['code'], call.arguments['url']));
         break;
+      case 'onJavaScriptChannelMessage':
+        final String channel = call.arguments['channel'];
+        final String message = call.arguments['message'];
+        _onJavaScriptChannelMessage(channel, message);
     }
   }
 
@@ -177,6 +190,16 @@ class FlutterWebviewPlugin {
     return res;
   }
 
+  Future<Null> handleLeftDrawerClosed() async {
+    return await translate(
+        0, 0, const Duration(milliseconds: _drawerCloseAnimationMillis));
+  }
+
+  Future<Null> handleLeftDrawerOpened() async {
+    return await translate(_drawerWidth, 0,
+        const Duration(milliseconds: _drawerOpenAnimationMillis));
+  }
+
   /// Close the Webview
   /// Will trigger the [onDestroy] event
   Future<Null> close() async => await _channel.invokeMethod('close');
@@ -190,29 +213,46 @@ class FlutterWebviewPlugin {
   /// Navigates forward on the Webview.
   Future<Null> goForward() async => await _channel.invokeMethod('forward');
 
-  // Hides the webview
+  /// Hides the webview
   Future<Null> hide() async => await _channel.invokeMethod('hide');
 
-  // Shows the webview
+  /// Shows the webview
   Future<Null> show() async => await _channel.invokeMethod('show');
 
-  // Reload webview with a url
+  /// Reload webview with a url
   Future<Null> reloadUrl(String url) async {
     final args = <String, String>{'url': url};
     await _channel.invokeMethod('reloadUrl', args);
   }
 
-  // Clean cookies on WebView
+  /// Clean cookies on WebView
   Future<Null> cleanCookies() async =>
       await _channel.invokeMethod('cleanCookies');
 
-  // Stops current loading process
+  /// Stops current loading process
   Future<Null> stopLoading() async =>
       await _channel.invokeMethod('stopLoading');
 
-  // Get a screenshot of the webview
+  /// Get a screenshot of the webview
   Future<Uint8List> getScreenshot() async =>
       await _channel.invokeMethod('takeScreenshot');
+
+  /// Translate the webview animated
+  Future<void> translate(int endX, int endY, Duration duration) async {
+    final args = <String, dynamic>{
+      'endX': endX,
+      'endY': endY,
+      'durationMilliseconds': duration.inMilliseconds
+    };
+
+    await _channel.invokeMethod('translate', args);
+  }
+
+  Future<void> setJavascriptChannels(Set<JavascriptChannel> channels) async {
+    _setJavascriptChannelsFromSet(channels);
+    return await _channel.invokeMethod<void>(
+        'addJavascriptChannels', channels.toList());
+  }
 
   /// Close all Streams
   void dispose() {
@@ -250,6 +290,37 @@ class FlutterWebviewPlugin {
       'height': rect.height,
     };
     await _channel.invokeMethod('resize', args);
+  }
+
+  void _onJavaScriptChannelMessage(String channel, String message) {
+    _javascriptChannels[channel].onMessageReceived(JavascriptMessage(message));
+  }
+
+  void _setJavascriptChannelsFromSet(Set<JavascriptChannel> channels) {
+    _javascriptChannels.clear();
+    if (channels == null) {
+      return;
+    }
+    for (JavascriptChannel channel in channels) {
+      _javascriptChannels[channel.name] = channel;
+    }
+  }
+
+  void _assertJavascriptChannelNamesAreUnique() {
+    if (_javascriptChannels == null || _javascriptChannels.isEmpty) {
+      return;
+    }
+    assert(_extractChannelNames(_javascriptChannels).length ==
+        widget.javascriptChannels.length);
+  }
+
+  Set<String> _extractChannelNames(Set<JavascriptChannel> channels) {
+    final Set<String> channelNames = channels == null
+        // TODO(iskakaushik): Remove this when collection literals makes it to stable.
+        // ignore: prefer_collection_literals
+        ? Set<String>()
+        : channels.map((JavascriptChannel channel) => channel.name).toSet();
+    return channelNames;
   }
 }
 

@@ -1,15 +1,18 @@
 package com.flutter_webview_plugin;
 
+import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Picture;
+import android.graphics.Path;
 import android.net.Uri;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
-import android.util.Log;
+import android.os.Handler;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +26,7 @@ import android.widget.FrameLayout;
 import android.provider.MediaStore;
 
 import androidx.core.content.FileProvider;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
 import android.database.Cursor;
 import android.provider.OpenableColumns;
@@ -53,11 +57,70 @@ class WebviewManager {
     private Uri fileUri;
     private Uri videoUri;
 
+    boolean closed = false;
+    WebView webView;
+    Activity activity;
+    BrowserClient webViewClient;
+    ResultHandler resultHandler;
+    Context context;
+
+    private final Handler platformThreadHandler;
+    private final MethodChannel methodChannel;
+
     private long getFileSize(Uri fileUri) {
         Cursor returnCursor = context.getContentResolver().query(fileUri, null, null, null, null);
         returnCursor.moveToFirst();
         int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
         return returnCursor.getLong(sizeIndex);
+    }
+
+    void translate(final int endX, final int endY, final int duration) {
+        float endXPixels = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                endX,
+                context.getResources().getDisplayMetrics()
+        );
+
+        float endYPixels = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                endY,
+                context.getResources().getDisplayMetrics()
+        );
+
+
+        Path path = new Path();
+        path.lineTo(endXPixels, endYPixels);
+        ObjectAnimator animator;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            animator = ObjectAnimator.ofFloat(
+                    webView,
+                    WebView.TRANSLATION_X,
+                    endXPixels
+            );
+        } else {
+            animator = ObjectAnimator.ofFloat(
+                    webView,
+                    WebView.TRANSLATION_X,
+                    endYPixels
+            );
+        }
+        animator.setDuration(duration);
+        animator.setInterpolator(new FastOutSlowInInterpolator());
+        animator.start();
+    }
+
+    void addJavascriptChannels(List<String> channelNames) {
+        for (String channel : channelNames) {
+            webView.addJavascriptInterface(
+                    new JavaScriptChannel(this.methodChannel, channel, this.platformThreadHandler),
+                    channel);
+        }
+    }
+
+    void removeJavascriptChannels(List<String> channelNames) {
+        for (String channel : channelNames) {
+            webView.removeJavascriptInterface(channel);
+        }
     }
 
     @TargetApi(7)
@@ -119,17 +182,14 @@ class WebviewManager {
         return null;
     }
 
-    boolean closed = false;
-    WebView webView;
-    Activity activity;
-    BrowserClient webViewClient;
-    ResultHandler resultHandler;
-    Context context;
-
-    WebviewManager(final Activity activity, final Context context) {
+    WebviewManager(final Activity activity,
+                   final Context context,
+                   final MethodChannel methodChannel,
+                   Handler platformThreadHandler) {
         this.webView = new ObservableWebView(activity);
         this.activity = activity;
         this.context = context;
+        this.methodChannel = methodChannel;
         this.resultHandler = new ResultHandler();
         webViewClient = new BrowserClient();
         webView.setOnKeyListener(new View.OnKeyListener() {
@@ -150,6 +210,8 @@ class WebviewManager {
                 return false;
             }
         });
+
+        this.platformThreadHandler = platformThreadHandler;
 
         ((ObservableWebView) webView).setOnScrollChangedCallback(new ObservableWebView.OnScrollChangedCallback() {
             public void onScroll(int x, int y, int oldx, int oldy) {
@@ -357,6 +419,7 @@ class WebviewManager {
         webView.clearFormData();
     }
 
+    @SuppressLint("NewApi")
     void openUrl(
             boolean withJavascript,
             boolean clearCache,
