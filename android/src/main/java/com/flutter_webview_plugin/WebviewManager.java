@@ -294,41 +294,6 @@ class WebviewManager {
                 webView.getHeight());
     }
 
-    void translateWithAnimation(final int endX, final int endY, final int duration) {
-        float endXPixels = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                endX,
-                context.getResources().getDisplayMetrics()
-        );
-
-        float endYPixels = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                endY,
-                context.getResources().getDisplayMetrics()
-        );
-
-
-        Path path = new Path();
-        path.lineTo(endXPixels, endYPixels);
-        ObjectAnimator animator;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            animator = ObjectAnimator.ofFloat(
-                    webView,
-                    WebView.TRANSLATION_X,
-                    endXPixels
-            );
-        } else {
-            animator = ObjectAnimator.ofFloat(
-                    webView,
-                    WebView.TRANSLATION_X,
-                    endYPixels
-            );
-        }
-        animator.setDuration(duration);
-        animator.setInterpolator(new FastOutSlowInInterpolator());
-        animator.start();
-    }
-
     private Uri getOutputFilename(String intentType) {
         String prefix = "";
         String suffix = "";

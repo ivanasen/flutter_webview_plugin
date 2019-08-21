@@ -78,10 +78,32 @@ class MyApp extends StatelessWidget {
           );
         },
         '/stacked-widget': (_) {
-          return StackDrawerScaffold(
-            body: Container(),
-            appBar: const StackDrawerAppBar(),
-            drawer: Drawer(),
+          return StackDrawerWebviewScaffold(
+            drawer: Drawer(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: const <Widget>[
+                  Text(
+                    'Left Drawer',
+                    style: TextStyle(fontSize: 32),
+                  ),
+                ],
+              ),
+            ),
+            endDrawer: Drawer(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: const <Widget>[
+                  Text(
+                    'Right Drawer',
+                    style: TextStyle(fontSize: 32),
+                  ),
+                ],
+              ),
+            ),
+            url: 'https://google.com',
           );
         }
       },

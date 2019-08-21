@@ -1,17 +1,17 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+import 'package:flutter_webview_plugin/src/stack_drawer_scaffold.dart';
 import 'package:flutter_webview_plugin/src/webview_placeholder.dart';
 
-import 'base.dart';
-
-class WebviewScaffold extends StatefulWidget {
-  const WebviewScaffold(
+class StackDrawerWebviewScaffold extends StatefulWidget {
+  const StackDrawerWebviewScaffold(
       {Key key,
-      this.appBar,
       @required this.url,
+      this.drawer,
+      this.endDrawer,
+      this.actions,
       this.headers,
       this.withJavascript,
       this.clearCache,
@@ -34,11 +34,13 @@ class WebviewScaffold extends StatefulWidget {
       this.invalidUrlRegex,
       this.geolocationEnabled,
       this.debuggingEnabled = false,
-      this.webviewResizeTimeoutDuration = const Duration(milliseconds: 250)})
+      this.title})
       : super(key: key);
 
-  final PreferredSizeWidget appBar;
-  final String url;
+  final Widget drawer;
+  final Widget endDrawer;
+  final Text title;
+  final List<Widget> actions;
   final Map<String, String> headers;
   final bool withJavascript;
   final bool clearCache;
@@ -61,36 +63,39 @@ class WebviewScaffold extends StatefulWidget {
   final String invalidUrlRegex;
   final bool geolocationEnabled;
   final bool debuggingEnabled;
-  final Duration webviewResizeTimeoutDuration;
+  final String url;
 
   @override
-  _WebviewScaffoldState createState() => _WebviewScaffoldState();
+  State<StatefulWidget> createState() => StackDrawerWebviewScaffoldState();
 }
 
-class _WebviewScaffoldState extends State<WebviewScaffold> {
-  final webviewReference = FlutterWebviewPlugin();
+class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
+    with TickerProviderStateMixin {
+  final FlutterWebviewPlugin _webviewReference = FlutterWebviewPlugin();
   Rect _rect;
-  Timer _resizeTimer;
-  StreamSubscription<WebViewStateChanged> _onStateChanged;
 
-  var _onBack;
+  StreamSubscription<Null> _onBack;
+  StreamSubscription<WebViewStateChanged> _onStateChanged;
 
   @override
   void initState() {
     super.initState();
-    webviewReference.close();
 
-    _onBack = webviewReference.onBack.listen((_) async {
-      if (!mounted) return;
+    _webviewReference.close();
+
+    _onBack = _webviewReference.onBack.listen((_) async {
+      if (!mounted) {
+        return;
+      }
 
       // The willPop/pop pair here is equivalent to Navigator.maybePop(),
       // which is what's called from the flutter back button handler.
-      final pop = await _topMostRoute.willPop();
+      final RoutePopDisposition pop = await _topMostRoute.willPop();
       if (pop == RoutePopDisposition.pop) {
         // Close the webview if it's on the route at the top of the stack.
         final isOnTopMostRoute = _topMostRoute == ModalRoute.of(context);
         if (isOnTopMostRoute) {
-          webviewReference.close();
+          _webviewReference.close();
         }
         Navigator.pop(context);
       }
@@ -98,9 +103,9 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
 
     if (widget.hidden) {
       _onStateChanged =
-          webviewReference.onStateChanged.listen((WebViewStateChanged state) {
+          _webviewReference.onStateChanged.listen((WebViewStateChanged state) {
         if (state.type == WebViewState.finishLoad) {
-          webviewReference.show();
+          _webviewReference.show();
         }
       });
     }
@@ -108,8 +113,8 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
 
   /// Equivalent to [Navigator.of(context)._history.last].
   Route<dynamic> get _topMostRoute {
-    var topMost;
-    Navigator.popUntil(context, (route) {
+    Route topMost;
+    Navigator.popUntil(context, (Route route) {
       topMost = route;
       return true;
     });
@@ -117,29 +122,15 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-    _onBack?.cancel();
-    _resizeTimer?.cancel();
-    webviewReference.close();
-    if (widget.hidden) {
-      _onStateChanged.cancel();
-    }
-    webviewReference.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: widget.appBar,
-      resizeToAvoidBottomInset: widget.resizeToAvoidBottomInset,
-      persistentFooterButtons: widget.persistentFooterButtons,
-      bottomNavigationBar: widget.bottomNavigationBar,
+    return StackDrawerScaffold(
+      drawer: widget.drawer,
+      endDrawer: widget.endDrawer,
       body: WebviewPlaceholder(
         onRectChanged: (Rect value) {
           if (_rect == null) {
             _rect = value;
-            webviewReference.launch(
+            _webviewReference.launch(
               widget.url,
               headers: widget.headers,
               withJavascript: widget.withJavascript,
@@ -163,11 +154,7 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
           } else {
             if (_rect != value) {
               _rect = value;
-              _resizeTimer?.cancel();
-              _resizeTimer = Timer(widget.webviewResizeTimeoutDuration, () {
-                // avoid resizing to fast when build is called multiple time
-                webviewReference.resize(_rect);
-              });
+              _webviewReference.resize(_rect);
             }
           }
         },
@@ -175,5 +162,14 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
             const Center(child: const CircularProgressIndicator()),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _webviewReference.close();
+    _webviewReference.dispose();
+    _onBack?.cancel();
+    _onStateChanged?.cancel();
   }
 }
