@@ -6,36 +6,36 @@ import 'package:flutter_webview_plugin/src/stack_drawer_scaffold.dart';
 import 'package:flutter_webview_plugin/src/webview_placeholder.dart';
 
 class StackDrawerWebviewScaffold extends StatefulWidget {
-  const StackDrawerWebviewScaffold(
-      {Key key,
-      @required this.url,
-      this.drawer,
-      this.endDrawer,
-      this.actions,
-      this.headers,
-      this.withJavascript,
-      this.clearCache,
-      this.clearCookies,
-      this.enableAppScheme,
-      this.userAgent,
-      this.primary = true,
-      this.persistentFooterButtons,
-      this.bottomNavigationBar,
-      this.withZoom,
-      this.withLocalStorage,
-      this.withLocalUrl,
-      this.scrollBar,
-      this.supportMultipleWindows,
-      this.appCacheEnabled,
-      this.hidden = false,
-      this.initialChild,
-      this.allowFileURLs,
-      this.resizeToAvoidBottomInset = false,
-      this.invalidUrlRegex,
-      this.geolocationEnabled,
-      this.debuggingEnabled = false,
-      this.title})
-      : super(key: key);
+  const StackDrawerWebviewScaffold({
+    Key key,
+    @required this.url,
+    this.drawer,
+    this.endDrawer,
+    this.actions,
+    this.headers,
+    this.withJavascript,
+    this.clearCache,
+    this.clearCookies,
+    this.enableAppScheme,
+    this.userAgent,
+    this.primary = true,
+    this.persistentFooterButtons,
+    this.bottomNavigationBar,
+    this.withZoom,
+    this.withLocalStorage,
+    this.withLocalUrl,
+    this.scrollBar,
+    this.supportMultipleWindows,
+    this.appCacheEnabled,
+    this.hidden = false,
+    this.initialChild,
+    this.allowFileURLs,
+    this.resizeToAvoidBottomInset = false,
+    this.invalidUrlRegex,
+    this.geolocationEnabled,
+    this.debuggingEnabled = false,
+    this.title,
+  }) : super(key: key);
 
   final Widget drawer;
   final Widget endDrawer;
@@ -126,6 +126,9 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
     return StackDrawerScaffold(
       drawer: widget.drawer,
       endDrawer: widget.endDrawer,
+      onDrawerOpened: (_) => _webviewReference.setWebviewTouchesEnabled(false),
+      onDrawerClosed: (_) => _webviewReference.setWebviewTouchesEnabled(true),
+      mainContentPressedStream: _webviewReference.onDisabledWebviewTouched,
       body: WebviewPlaceholder(
         onRectChanged: (Rect value) {
           if (_rect == null) {

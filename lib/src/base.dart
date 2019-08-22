@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -33,8 +31,7 @@ class FlutterWebviewPlugin {
   final _onScrollYChanged = StreamController<double>.broadcast();
   final _onProgressChanged = new StreamController<double>.broadcast();
   final _onHttpError = StreamController<WebViewHttpError>.broadcast();
-  final _onScreenshotTaken = StreamController<Uint8List>.broadcast();
-  final _onScrollStopped = StreamController<Point>.broadcast();
+  final _onDisabledWebviewTouched = StreamController<Null>.broadcast();
 
   Future<Null> _handleMessages(MethodCall call) async {
     switch (call.method) {
@@ -67,17 +64,11 @@ class FlutterWebviewPlugin {
         _onHttpError.add(
             WebViewHttpError(call.arguments['code'], call.arguments['url']));
         break;
-      case 'screenshotTaken':
-        _onScreenshotTaken.add(call.arguments['screenshot']);
-        break;
-      case 'scrollStopped':
-        _onScrollStopped
-            .add(Point(call.arguments['xScroll'], call.arguments['yScroll']));
+      case 'onDisabledWebviewTouched':
+        _onDisabledWebviewTouched.add(null);
         break;
     }
   }
-
-  Stream<Uint8List> get onScreenshotTaken => _onScreenshotTaken.stream;
 
   /// Listening the OnDestroy LifeCycle Event for Android
   Stream<Null> get onDestroy => _onDestroy.stream;
@@ -103,6 +94,8 @@ class FlutterWebviewPlugin {
   Stream<double> get onScrollXChanged => _onScrollXChanged.stream;
 
   Stream<WebViewHttpError> get onHttpError => _onHttpError.stream;
+
+  Stream<Null> get onDisabledWebviewTouched => _onDisabledWebviewTouched.stream;
 
   /// Start the Webview with [url]
   /// - [headers] specify additional HTTP headers
@@ -222,20 +215,10 @@ class FlutterWebviewPlugin {
   Future<Null> stopLoading() async =>
       await _channel.invokeMethod('stopLoading');
 
-  // Get a screenshot of the webview
-  Future<Uint8List> takeScreenshot() async =>
-      await _channel.invokeMethod('takeScreenshot');
-
-  // Translate the webview with animation
-  Future<void> translateWithAnimation(
-      int endX, int endY, Duration duration) async {
-    final args = <String, dynamic>{
-      'endX': endX,
-      'endY': endY,
-      'durationMilliseconds': duration.inMilliseconds
-    };
-
-    await _channel.invokeMethod('translateWithAnimation', args);
+  // Enables or disables touches to the webview
+  Future<Null> setWebviewTouchesEnabled(bool enabled) async {
+    final args = <String, bool>{'enabled': enabled};
+    await _channel.invokeMethod('setWebviewTouchesEnabled', args);
   }
 
   /// Close all Streams
@@ -275,8 +258,6 @@ class FlutterWebviewPlugin {
     };
     await _channel.invokeMethod('resize', args);
   }
-
-  Stream<Point> get onScrollStopped => _onScrollStopped.stream;
 }
 
 class WebViewStateChanged {

@@ -4,18 +4,13 @@ package com.flutter_webview_plugin;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.os.AsyncTask;
-import android.os.Handler;
 import android.view.Display;
 import android.widget.FrameLayout;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
 import android.os.Build;
 
-import java.io.ByteArrayOutputStream;
-import java.util.HashMap;
 import java.util.Map;
 
 import io.flutter.plugin.common.MethodCall;
@@ -84,30 +79,18 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
             case "cleanCookies":
                 cleanCookies(call, result);
                 break;
-            case "takeScreenshot":
-                takeScreenshot(call, result);
+            case "setWebviewTouchesEnabled":
+                setWebviewTouchesEnabled(call, result);
             default:
                 result.notImplemented();
                 break;
         }
     }
 
-    private void takeScreenshot(MethodCall call, MethodChannel.Result result) {
-        try {
-            final Bitmap screenshot = webViewManager.takeScreenshot();
-
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            screenshot.compress(Bitmap.CompressFormat.JPEG, 50, stream);
-            byte[] byteArray = stream.toByteArray();
-
-            final HashMap<String, byte[]> arguments = new HashMap<>();
-            arguments.put("screenshot", byteArray);
-
-            channel.invokeMethod("screenshotTaken", arguments);
-
-        } catch (Exception ignored) {
-
-        }
+    private void setWebviewTouchesEnabled(MethodCall call, MethodChannel.Result result) {
+        boolean enabled = call.argument("enabled");
+        webViewManager.setWebviewTouchesEnabled(enabled);
+        result.success(null);
     }
 
     private void openUrl(MethodCall call, MethodChannel.Result result) {

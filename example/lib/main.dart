@@ -15,7 +15,6 @@ void main() => runApp(MyApp());
 class MyApp extends StatelessWidget {
   final flutterWebViewPlugin = FlutterWebviewPlugin();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final _drawerAnimationManager = DrawerAnimationManager();
 
   @override
   Widget build(BuildContext context) {
@@ -27,30 +26,20 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (_) => const MyHomePage(title: 'Flutter WebView Demo'),
         '/widget': (_) {
-          return SlidingDrawerWebviewScaffold(
-            scaffoldKey: _scaffoldKey,
+          return WebviewScaffold(
             url: selectedUrl,
             appBar: AppBar(
               title: const Text('Widget WebView'),
-              leading: LeftDrawerOpenMenuButton(
-                  scaffoldKey: _scaffoldKey,
-                  drawerManager: _drawerAnimationManager),
-            ),
-            drawer: Drawer(
-              child: InkWell(
-                onTap: () {
-                  _drawerAnimationManager.handleDrawerClosed();
-                  Navigator.of(_scaffoldKey.currentState.context).pop();
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
             ),
             withZoom: true,
             withLocalStorage: true,
             hidden: true,
+            initialChild: Container(
+              color: Colors.redAccent,
+              child: const Center(
+                child: Text('Waiting.....'),
+              ),
+            ),
             bottomNavigationBar: BottomAppBar(
               child: Row(
                 children: <Widget>[
@@ -315,21 +304,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 flutterWebViewPlugin.close();
               },
               child: const Text('Close'),
-            ),
-            RaisedButton(
-              onPressed: () async {
-                final Uint8List screenshotByteList =
-                    await flutterWebViewPlugin.takeScreenshot();
-                flutterWebViewPlugin.hide();
-                final Image screenshot = Image.memory(screenshotByteList);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    content: screenshot,
-                  ),
-                );
-              },
-              child: const Text('Take screenshot and hide'),
             ),
             RaisedButton(
               onPressed: () {
