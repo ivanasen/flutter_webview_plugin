@@ -1,22 +1,30 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 class StackDrawerScaffold extends StatefulWidget {
-  const StackDrawerScaffold(
-      {Key key,
-      this.drawer,
-      this.endDrawer,
-      this.body,
-      this.actions,
-      this.title})
-      : super(key: key);
+  const StackDrawerScaffold({
+    Key key,
+    this.drawer,
+    this.endDrawer,
+    this.body,
+    this.actions,
+    this.title,
+    this.onDrawerOpened,
+    this.onDrawerClosed,
+    this.mainContentPressedStream,
+  }) : super(key: key);
 
   final Widget drawer;
   final Widget endDrawer;
   final Text title;
   final List<Widget> actions;
   final Widget body;
+  final Stream<Null> mainContentPressedStream;
+
+  final void Function(bool isLeft) onDrawerOpened;
+  final void Function(bool isLeft) onDrawerClosed;
 
   @override
   State<StatefulWidget> createState() => StackDrawerScaffoldState();
@@ -24,7 +32,7 @@ class StackDrawerScaffold extends StatefulWidget {
 
 class StackDrawerScaffoldState extends State<StackDrawerScaffold>
     with TickerProviderStateMixin {
-  static const double _defaultDrawerWidth = 304;
+  static const double _defaultDrawerWidth = 340;
   static const int _drawerAnimationDurationMillis = 250;
   static const int _mainScreenLeftOverWidth = 60;
 
@@ -32,6 +40,8 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
   bool _endDrawerOpened = false;
   AnimationController _drawerAnimationController;
   AnimationController _endDrawerAnimationController;
+  StreamSubscription<Null> _mainContentPressedSubscription;
+
   double _drawerWidth;
 
   @override
@@ -46,6 +56,15 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
       vsync: this,
       duration: Duration(milliseconds: _drawerAnimationDurationMillis),
     );
+
+    _mainContentPressedSubscription =
+        widget.mainContentPressedStream.listen((_) {
+      if (_drawerOpened) {
+        _toggleDrawer();
+      } else if (_endDrawerOpened) {
+        _toggleEndDrawer();
+      }
+    });
   }
 
   @override
@@ -77,6 +96,7 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
     super.dispose();
     _drawerAnimationController.dispose();
     _endDrawerAnimationController.dispose();
+    _mainContentPressedSubscription?.cancel();
   }
 
   Widget _buildAnimatedMainContent(Widget content) {
@@ -132,25 +152,45 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
 
   Widget _buildDrawerMenuButton() {
     return IconButton(
-      icon: AnimatedIcon(
-        icon: AnimatedIcons.menu_arrow,
-        progress: _drawerAnimationController,
-      ),
-      onPressed: () {
-        if (_endDrawerOpened) {
-          return;
-        }
+        icon: AnimatedIcon(
+          icon: AnimatedIcons.menu_arrow,
+          progress: _drawerAnimationController,
+        ),
+        onPressed: _toggleDrawer);
+  }
 
-        setState(() {
-          _drawerOpened = !_drawerOpened;
-          if (_drawerOpened) {
-            _drawerAnimationController.forward();
-          } else {
-            _drawerAnimationController.reverse();
-          }
-        });
-      },
-    );
+  void _toggleDrawer() {
+    if (_endDrawerOpened) {
+      return;
+    }
+
+    setState(() {
+      _drawerOpened = !_drawerOpened;
+      if (_drawerOpened) {
+        _drawerAnimationController.forward();
+        widget.onDrawerOpened(true);
+      } else {
+        _drawerAnimationController.reverse();
+        widget.onDrawerClosed(true);
+      }
+    });
+  }
+
+  void _toggleEndDrawer() {
+    if (_drawerOpened) {
+      return;
+    }
+
+    setState(() {
+      _endDrawerOpened = !_endDrawerOpened;
+      if (_endDrawerOpened) {
+        _endDrawerAnimationController.forward();
+        widget.onDrawerOpened(false);
+      } else {
+        _endDrawerAnimationController.reverse();
+        widget.onDrawerOpened(false);
+      }
+    });
   }
 
   Widget _buildEndDrawerMenuButton() {
@@ -163,20 +203,7 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
         ),
         quarterTurns: 2,
       ),
-      onPressed: () {
-        if (_drawerOpened) {
-          return;
-        }
-
-        setState(() {
-          _endDrawerOpened = !_endDrawerOpened;
-          if (_endDrawerOpened) {
-            _endDrawerAnimationController.forward();
-          } else {
-            _endDrawerAnimationController.reverse();
-          }
-        });
-      },
+      onPressed: _toggleEndDrawer,
     );
   }
 

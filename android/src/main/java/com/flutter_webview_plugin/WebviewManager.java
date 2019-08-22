@@ -1,20 +1,15 @@
 package com.flutter_webview_plugin;
 
-import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Path;
-import android.graphics.Picture;
 import android.net.Uri;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
-import android.util.Log;
-import android.util.TypedValue;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
@@ -27,7 +22,6 @@ import android.widget.FrameLayout;
 import android.provider.MediaStore;
 
 import androidx.core.content.FileProvider;
-import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
 import android.database.Cursor;
 import android.provider.OpenableColumns;
@@ -57,12 +51,17 @@ class WebviewManager {
     private final static int FILECHOOSER_RESULTCODE = 1;
     private Uri fileUri;
     private Uri videoUri;
+    private boolean webviewTouchesEnabled;
 
     private long getFileSize(Uri fileUri) {
         Cursor returnCursor = context.getContentResolver().query(fileUri, null, null, null, null);
         returnCursor.moveToFirst();
         int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
         return returnCursor.getLong(sizeIndex);
+    }
+
+    public void setWebviewTouchesEnabled(boolean enabled) {
+        webviewTouchesEnabled = enabled;
     }
 
     @TargetApi(7)
@@ -131,6 +130,7 @@ class WebviewManager {
     ResultHandler resultHandler;
     Context context;
 
+    @SuppressLint("ClickableViewAccessibility")
     WebviewManager(final Activity activity, final Context context) {
         this.webView = new ObservableWebView(activity);
         this.activity = activity;
@@ -156,17 +156,6 @@ class WebviewManager {
             }
         });
 
-        final Runnable scrollStoppedRunnable = new Runnable() {
-            public void run() {
-                Map<String, Object> position = new HashMap<>();
-                position.put("xScroll", (double) webView.getScrollX());
-                position.put("yScroll", (double) webView.getScrollY());
-                FlutterWebviewPlugin.channel.invokeMethod(
-                        "scrollStopped", position);
-            }
-        };
-        final Handler handler = new Handler();
-
         ((ObservableWebView) webView).setOnScrollChangedCallback(
                 new ObservableWebView.OnScrollChangedCallback() {
                     public void onScroll(int x, int y, int oldX, int oldY) {
@@ -176,10 +165,6 @@ class WebviewManager {
                         Map<String, Object> xDirection = new HashMap<>();
                         xDirection.put("xDirection", (double) x);
                         FlutterWebviewPlugin.channel.invokeMethod("onScrollXChanged", xDirection);
-
-
-                        handler.removeCallbacks(scrollStoppedRunnable);
-                        handler.postDelayed(scrollStoppedRunnable, 66);
                     }
                 });
 
@@ -270,28 +255,19 @@ class WebviewManager {
                 FlutterWebviewPlugin.channel.invokeMethod("onProgressChanged", args);
             }
         });
-    }
 
-    Bitmap takeScreenshot() {
-        float bitmapHeight = Math.max(webView.getHeight(),
-                webView.getContentHeight() *
-                        webView.getScaleY() *
-                        webView.getResources().getDisplayMetrics().density);
+        webView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (!webviewTouchesEnabled) {
+                    FlutterWebviewPlugin.channel.invokeMethod(
+                            "onDisabledWebviewTouched",
+                            null);
+                }
 
-        Bitmap bitmap = Bitmap.createBitmap(
-                webView.getWidth(), (int) bitmapHeight, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        webView.draw(canvas);
-
-        float scrollOffsetY = (webView.getScrollY() + webView.getHeight() > bitmap.getHeight()) ?
-                bitmapHeight - webView.getHeight() : webView.getScrollY();
-
-        return Bitmap.createBitmap(
-                bitmap,
-                0,
-                (int) scrollOffsetY,
-                webView.getWidth(),
-                webView.getHeight());
+                return !webviewTouchesEnabled;
+            }
+        });
     }
 
     private Uri getOutputFilename(String intentType) {
