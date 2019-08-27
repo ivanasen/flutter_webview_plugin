@@ -35,6 +35,7 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
     this.geolocationEnabled,
     this.debuggingEnabled = false,
     this.title,
+    this.javascriptChannels,
   }) : super(key: key);
 
   final Widget drawer;
@@ -64,6 +65,7 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
   final bool geolocationEnabled;
   final bool debuggingEnabled;
   final String url;
+  final Set<JavascriptChannel> javascriptChannels;
 
   @override
   State<StatefulWidget> createState() => StackDrawerWebviewScaffoldState();
@@ -153,6 +155,7 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
               invalidUrlRegex: widget.invalidUrlRegex,
               geolocationEnabled: widget.geolocationEnabled,
               debuggingEnabled: widget.debuggingEnabled,
+              javascriptChannels: widget.javascriptChannels,
             );
           } else {
             if (_rect != value) {
