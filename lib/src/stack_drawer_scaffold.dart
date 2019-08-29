@@ -168,7 +168,7 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
   }
 
   List<Widget> _buildAppBarActions() {
-    final List<Widget> appBarActions = widget.appBar?.actions ?? [];
+    final List<Widget> appBarActions = List.from(widget.appBar?.actions ?? []);
     if (widget.endDrawer != null) {
       appBarActions.add(_buildEndDrawerMenuButton());
     }

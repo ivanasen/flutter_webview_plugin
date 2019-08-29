@@ -11,7 +11,6 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
     @required this.url,
     this.drawer,
     this.endDrawer,
-    this.actions,
     this.headers,
     this.withJavascript,
     this.clearCache,
@@ -34,14 +33,12 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
     this.invalidUrlRegex,
     this.geolocationEnabled,
     this.debuggingEnabled = false,
-    this.title,
     this.javascriptChannels,
+    this.appBar,
   }) : super(key: key);
 
   final Widget drawer;
   final Widget endDrawer;
-  final Text title;
-  final List<Widget> actions;
   final Map<String, String> headers;
   final bool withJavascript;
   final bool clearCache;
@@ -66,6 +63,7 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
   final bool debuggingEnabled;
   final String url;
   final Set<JavascriptChannel> javascriptChannels;
+  final PreferredSizeWidget appBar;
 
   @override
   State<StatefulWidget> createState() => StackDrawerWebviewScaffoldState();
@@ -130,6 +128,7 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
   @override
   Widget build(BuildContext context) {
     return StackDrawerScaffold(
+      appBar: widget.appBar,
       drawer: widget.drawer,
       endDrawer: widget.endDrawer,
       onDrawerToggled: (bool opened) {

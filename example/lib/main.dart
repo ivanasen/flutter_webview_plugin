@@ -81,6 +81,14 @@ class MyApp extends StatelessWidget {
             drawer: AppDrawer(),
             endDrawer: AppDrawer(),
             url: 'https://google.com',
+            appBar: AppBar(
+              key: GlobalKey(),
+              title: const Text('Stack Drawer Scaffold'),
+              actions: const <Widget>[
+                Icon(Icons.account_circle),
+              ],
+              backgroundColor: Colors.blue,
+            ),
           );
         }
       },
@@ -96,7 +104,7 @@ class AppDrawer extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          RaisedButton(
+          OutlineButton(
             child: const Text(
               'Close Drawer',
               style: TextStyle(fontSize: 32),
