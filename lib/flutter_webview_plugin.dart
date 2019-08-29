@@ -5,4 +5,5 @@ export 'src/javascript_channel.dart';
 export 'src/javascript_message.dart';
 export 'src/stack_drawer_scaffold.dart';
 export 'src/stack_drawer_webview_scaffold.dart';
+export 'src/webview_auto_hide_navigator_observer.dart';
 export 'src/webview_scaffold.dart';
