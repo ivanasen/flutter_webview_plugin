@@ -75,7 +75,8 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
     with TickerProviderStateMixin {
   final FlutterWebviewPlugin _webviewReference = FlutterWebviewPlugin();
   Rect _rect;
-
+  bool _drawerOpened = false;
+  bool _endDrawerOpened = false;
   StreamSubscription<Null> _onBack;
   StreamSubscription<WebViewStateChanged> _onStateChanged;
 
@@ -111,6 +112,9 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
         }
       });
     }
+
+    _webviewReference.onDisabledWebviewTouched
+        .listen((_) => _handleCloseDrawer());
   }
 
   /// Equivalent to [Navigator.of(context)._history.last].
@@ -128,10 +132,21 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
     return StackDrawerScaffold(
       drawer: widget.drawer,
       endDrawer: widget.endDrawer,
-      onDrawerOpened: (_) => _webviewReference.setWebviewTouchesEnabled(false),
-      onDrawerClosed: (_) => _webviewReference.setWebviewTouchesEnabled(true),
-      mainContentPressedStream: _webviewReference.onDisabledWebviewTouched,
-      body: WebviewPlaceholder(
+      onDrawerToggled: (bool opened) {
+        _drawerOpened = opened;
+        _webviewReference.setWebviewTouchesEnabled(!opened);
+      },
+      onEndDrawerToggled: (bool opened) {
+        _endDrawerOpened = opened;
+        _webviewReference.setWebviewTouchesEnabled(!opened);
+      },
+      body: _buildWebviewPlaceholder(),
+    );
+  }
+
+  Widget _buildWebviewPlaceholder() {
+    return Card(
+      child: WebviewPlaceholder(
         onRectChanged: (Rect value) {
           if (_rect == null) {
             _rect = value;
@@ -167,7 +182,15 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
         child: widget.initialChild ??
             const Center(child: const CircularProgressIndicator()),
       ),
+      margin: const EdgeInsets.all(0),
+      elevation: 4,
     );
+  }
+
+  void _handleCloseDrawer() {
+    if (_drawerOpened || _endDrawerOpened) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override

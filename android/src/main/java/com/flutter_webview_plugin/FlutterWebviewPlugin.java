@@ -84,6 +84,7 @@ public class FlutterWebviewPlugin implements MethodCallHandler, PluginRegistry.A
                 break;
             case "setWebviewTouchesEnabled":
                 setWebviewTouchesEnabled(call, result);
+                break;
             default:
                 result.notImplemented();
                 break;

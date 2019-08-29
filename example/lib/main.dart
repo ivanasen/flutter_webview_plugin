@@ -78,34 +78,33 @@ class MyApp extends StatelessWidget {
         },
         '/stacked-widget': (_) {
           return StackDrawerWebviewScaffold(
-            drawer: Drawer(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: const <Widget>[
-                  Text(
-                    'Left Drawer',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                ],
-              ),
-            ),
-            endDrawer: Drawer(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: const <Widget>[
-                  Text(
-                    'Right Drawer',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                ],
-              ),
-            ),
+            drawer: AppDrawer(),
+            endDrawer: AppDrawer(),
             url: 'https://google.com',
           );
         }
       },
+    );
+  }
+}
+
+class AppDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          RaisedButton(
+            child: const Text(
+              'Close Drawer',
+              style: TextStyle(fontSize: 32),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
     );
   }
 }
