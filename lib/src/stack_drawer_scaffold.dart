@@ -13,12 +13,14 @@ class StackDrawerScaffold extends StatefulWidget {
     this.onDrawerToggled,
     this.onEndDrawerToggled,
     this.appBar,
+    this.mainContentElevation = 4.0,
   }) : super(key: key);
 
   final Widget drawer;
   final Widget endDrawer;
   final Widget body;
   final AppBar appBar;
+  final double mainContentElevation;
 
   final void Function(bool opened) onDrawerToggled;
   final void Function(bool opened) onEndDrawerToggled;
@@ -103,9 +105,23 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
   }
 
   Widget _buildScaffold() {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: widget.body,
+    return Card(
+      elevation: widget.mainContentElevation,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(),
+      child: Scaffold(
+        appBar: _buildAppBar(),
+        body: GestureDetector(
+          onTap: () {
+            if (_drawerOpened) {
+              _drawerToggleStream.sink.add(null);
+            } else if (_endDrawerOpened) {
+              _endDrawerToggleStream.sink.add(null);
+            }
+          },
+          child: widget.body,
+        ),
+      ),
     );
   }
 
@@ -113,6 +129,7 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
     if (widget.appBar != null) {
       return AppBar(
         key: widget.appBar?.key,
+        elevation: widget.appBar.elevation,
         leading: widget.drawer != null
             ? _buildDrawerMenuButton()
             : widget.appBar.leading,
@@ -197,7 +214,7 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
       _drawerOpened = opened;
     });
 
-    widget.onDrawerToggled(opened);
+    widget.onDrawerToggled != null ? widget.onDrawerToggled(opened) : null;
   }
 
   void _handleEndDrawerToggled(bool opened) {
@@ -211,6 +228,8 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
       _endDrawerOpened = opened;
     });
 
-    widget.onEndDrawerToggled(opened);
+    widget.onEndDrawerToggled != null
+        ? widget.onEndDrawerToggled(opened)
+        : null;
   }
 }
