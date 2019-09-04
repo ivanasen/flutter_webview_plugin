@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/src/base.dart';
 
 class WebviewAutoHideNavigatorObserver extends NavigatorObserver {
-  final FlutterWebviewPlugin plugin = FlutterWebviewPlugin();
+  WebviewAutoHideNavigatorObserver(this.plugin);
+
+  final FlutterWebviewPlugin plugin;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic> previousRoute) {

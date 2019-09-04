@@ -78,6 +78,8 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
   StreamSubscription<Null> _onBack;
   StreamSubscription<WebViewStateChanged> _onStateChanged;
 
+  WebviewAutoHideNavigatorObserver _autoHideNavigatorObserver;
+
   @override
   void initState() {
     super.initState();
@@ -113,6 +115,10 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
 
     _webviewReference.onDisabledWebviewTouched
         .listen((_) => _handleCloseDrawer());
+
+    _autoHideNavigatorObserver =
+        WebviewAutoHideNavigatorObserver(_webviewReference);
+    Navigator.of(context).widget.observers.add(_autoHideNavigatorObserver);
   }
 
   /// Equivalent to [Navigator.of(context)._history.last].
@@ -199,5 +205,6 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
     _webviewReference.dispose();
     _onBack?.cancel();
     _onStateChanged?.cancel();
+    Navigator.of(context).widget.observers.remove(_autoHideNavigatorObserver);
   }
 }
