@@ -232,4 +232,13 @@ class StackDrawerScaffoldState extends State<StackDrawerScaffold>
         ? widget.onEndDrawerToggled(opened)
         : null;
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _endDrawerButtonAnimationController.dispose();
+    _drawerButtonAnimationController.dispose();
+    _drawerToggleStream.close();
+    _endDrawerToggleStream.close();
+  }
 }
