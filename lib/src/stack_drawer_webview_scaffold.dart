@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_webview_plugin/src/stack_drawer_scaffold.dart';
 import 'package:flutter_webview_plugin/src/webview_placeholder.dart';
+import 'package:flutter_webview_plugin/vendor/visibility_detector/src/visibility_detector.dart';
 
 class StackDrawerWebviewScaffold extends StatefulWidget {
   const StackDrawerWebviewScaffold({
@@ -127,19 +128,30 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
 
   @override
   Widget build(BuildContext context) {
-    return StackDrawerScaffold(
-      appBar: widget.appBar,
-      drawer: widget.drawer,
-      endDrawer: widget.endDrawer,
-      onDrawerToggled: (bool opened) {
-        _drawerOpened = opened;
-        _webviewReference.setWebviewTouchesEnabled(!opened);
+    return VisibilityDetector(
+      key: GlobalKey(),
+      onVisibilityChanged: (VisibilityInfo info) {
+        print('Visibility: ' + info.visibleFraction.toString());
+        if (info.visibleFraction < 0.5) {
+          _webviewReference.hide();
+        } else  {
+          _webviewReference.show();
+        }
       },
-      onEndDrawerToggled: (bool opened) {
-        _endDrawerOpened = opened;
-        _webviewReference.setWebviewTouchesEnabled(!opened);
-      },
-      body: _buildWebviewPlaceholder(),
+      child: StackDrawerScaffold(
+        appBar: widget.appBar,
+        drawer: widget.drawer,
+        endDrawer: widget.endDrawer,
+        onDrawerToggled: (bool opened) {
+          _drawerOpened = opened;
+          _webviewReference.setWebviewTouchesEnabled(!opened);
+        },
+        onEndDrawerToggled: (bool opened) {
+          _endDrawerOpened = opened;
+          _webviewReference.setWebviewTouchesEnabled(!opened);
+        },
+        body: _buildWebviewPlaceholder(),
+      ),
     );
   }
 
