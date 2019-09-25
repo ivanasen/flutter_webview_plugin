@@ -8,7 +8,16 @@ import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 const kAndroidUserAgent =
     'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Mobile Safari/537.36';
 
-String selectedUrl = 'https://flutter.io';
+String selectedUrl = 'https://damp-coast-35782.herokuapp.com';
+
+// ignore: prefer_collection_literals
+final Set<JavascriptChannel> jsChannels = [
+  JavascriptChannel(
+      name: 'Print',
+      onMessageReceived: (JavascriptMessage message) {
+        print(message.message);
+      }),
+].toSet();
 
 void main() => runApp(MyApp());
 
@@ -28,6 +37,7 @@ class MyApp extends StatelessWidget {
         '/widget': (_) {
           return WebviewScaffold(
             url: selectedUrl,
+            javascriptChannels: jsChannels,
             appBar: AppBar(
               title: const Text('Widget WebView'),
             ),
@@ -68,34 +78,41 @@ class MyApp extends StatelessWidget {
         },
         '/stacked-widget': (_) {
           return StackDrawerWebviewScaffold(
-            drawer: Drawer(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: const <Widget>[
-                  Text(
-                    'Left Drawer',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                ],
-              ),
-            ),
-            endDrawer: Drawer(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: const <Widget>[
-                  Text(
-                    'Right Drawer',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                ],
-              ),
-            ),
+            drawer: AppDrawer(),
+            endDrawer: AppDrawer(),
             url: 'https://google.com',
+            appBar: AppBar(
+              key: GlobalKey(),
+              title: const Text('Stack Drawer Scaffold'),
+              actions: const <Widget>[
+                Icon(Icons.account_circle),
+              ],
+              backgroundColor: Colors.blue,
+            ),
           );
         }
       },
+    );
+  }
+}
+
+class AppDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          OutlineButton(
+            child: const Text(
+              'Close Drawer',
+              style: TextStyle(fontSize: 32),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -170,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
         flutterWebViewPlugin.onProgressChanged.listen((double progress) {
       if (mounted) {
         setState(() {
-          _history.add("onProgressChanged: $progress");
+          _history.add('onProgressChanged: $progress');
         });
       }
     });

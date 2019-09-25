@@ -11,7 +11,6 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
     @required this.url,
     this.drawer,
     this.endDrawer,
-    this.actions,
     this.headers,
     this.withJavascript,
     this.clearCache,
@@ -34,13 +33,12 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
     this.invalidUrlRegex,
     this.geolocationEnabled,
     this.debuggingEnabled = false,
-    this.title,
+    this.javascriptChannels,
+    this.appBar,
   }) : super(key: key);
 
   final Widget drawer;
   final Widget endDrawer;
-  final Text title;
-  final List<Widget> actions;
   final Map<String, String> headers;
   final bool withJavascript;
   final bool clearCache;
@@ -64,6 +62,8 @@ class StackDrawerWebviewScaffold extends StatefulWidget {
   final bool geolocationEnabled;
   final bool debuggingEnabled;
   final String url;
+  final Set<JavascriptChannel> javascriptChannels;
+  final PreferredSizeWidget appBar;
 
   @override
   State<StatefulWidget> createState() => StackDrawerWebviewScaffoldState();
@@ -73,7 +73,8 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
     with TickerProviderStateMixin {
   final FlutterWebviewPlugin _webviewReference = FlutterWebviewPlugin();
   Rect _rect;
-
+  bool _drawerOpened = false;
+  bool _endDrawerOpened = false;
   StreamSubscription<Null> _onBack;
   StreamSubscription<WebViewStateChanged> _onStateChanged;
 
@@ -109,6 +110,9 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
         }
       });
     }
+
+    _webviewReference.onDisabledWebviewTouched
+        .listen((_) => _handleCloseDrawer());
   }
 
   /// Equivalent to [Navigator.of(context)._history.last].
@@ -124,12 +128,24 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
   @override
   Widget build(BuildContext context) {
     return StackDrawerScaffold(
+      appBar: widget.appBar,
       drawer: widget.drawer,
       endDrawer: widget.endDrawer,
-      onDrawerOpened: (_) => _webviewReference.setWebviewTouchesEnabled(false),
-      onDrawerClosed: (_) => _webviewReference.setWebviewTouchesEnabled(true),
-      mainContentPressedStream: _webviewReference.onDisabledWebviewTouched,
-      body: WebviewPlaceholder(
+      onDrawerToggled: (bool opened) {
+        _drawerOpened = opened;
+        _webviewReference.setWebviewTouchesEnabled(!opened);
+      },
+      onEndDrawerToggled: (bool opened) {
+        _endDrawerOpened = opened;
+        _webviewReference.setWebviewTouchesEnabled(!opened);
+      },
+      body: _buildWebviewPlaceholder(),
+    );
+  }
+
+  Widget _buildWebviewPlaceholder() {
+    return Card(
+      child: WebviewPlaceholder(
         onRectChanged: (Rect value) {
           if (_rect == null) {
             _rect = value;
@@ -153,6 +169,7 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
               invalidUrlRegex: widget.invalidUrlRegex,
               geolocationEnabled: widget.geolocationEnabled,
               debuggingEnabled: widget.debuggingEnabled,
+              javascriptChannels: widget.javascriptChannels,
             );
           } else {
             if (_rect != value) {
@@ -164,7 +181,15 @@ class StackDrawerWebviewScaffoldState extends State<StackDrawerWebviewScaffold>
         child: widget.initialChild ??
             const Center(child: const CircularProgressIndicator()),
       ),
+      margin: const EdgeInsets.all(0),
+      elevation: 4,
     );
+  }
+
+  void _handleCloseDrawer() {
+    if (_drawerOpened || _endDrawerOpened) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override

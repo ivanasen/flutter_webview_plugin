@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_webview_plugin/src/webview_placeholder.dart';
+import 'package:flutter_webview_plugin/src/javascript_channel.dart';
 
 import 'base.dart';
 
@@ -34,12 +35,17 @@ class WebviewScaffold extends StatefulWidget {
       this.invalidUrlRegex,
       this.geolocationEnabled,
       this.debuggingEnabled = false,
-      this.webviewResizeTimeoutDuration = const Duration(milliseconds: 250)})
+      this.javascriptChannels,
+      this.webviewResizeTimeoutDuration = const Duration(milliseconds: 250),
+      this.displayZoomControls,
+      this.withOverviewMode,
+      this.useWideViewPort})
       : super(key: key);
 
   final PreferredSizeWidget appBar;
   final String url;
   final Map<String, String> headers;
+  final Set<JavascriptChannel> javascriptChannels;
   final bool withJavascript;
   final bool clearCache;
   final bool clearCookies;
@@ -49,6 +55,7 @@ class WebviewScaffold extends StatefulWidget {
   final List<Widget> persistentFooterButtons;
   final Widget bottomNavigationBar;
   final bool withZoom;
+  final bool displayZoomControls;
   final bool withLocalStorage;
   final bool withLocalUrl;
   final bool scrollBar;
@@ -60,6 +67,8 @@ class WebviewScaffold extends StatefulWidget {
   final bool resizeToAvoidBottomInset;
   final String invalidUrlRegex;
   final bool geolocationEnabled;
+  final bool withOverviewMode;
+  final bool useWideViewPort;
   final bool debuggingEnabled;
   final Duration webviewResizeTimeoutDuration;
 
@@ -81,7 +90,9 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
     webviewReference.close();
 
     _onBack = webviewReference.onBack.listen((_) async {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       // The willPop/pop pair here is equivalent to Navigator.maybePop(),
       // which is what's called from the flutter back button handler.
@@ -142,6 +153,7 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
             webviewReference.launch(
               widget.url,
               headers: widget.headers,
+              javascriptChannels: widget.javascriptChannels,
               withJavascript: widget.withJavascript,
               clearCache: widget.clearCache,
               clearCookies: widget.clearCookies,
@@ -150,8 +162,11 @@ class _WebviewScaffoldState extends State<WebviewScaffold> {
               userAgent: widget.userAgent,
               rect: _rect,
               withZoom: widget.withZoom,
+              displayZoomControls: widget.displayZoomControls,
               withLocalStorage: widget.withLocalStorage,
               withLocalUrl: widget.withLocalUrl,
+              withOverviewMode: widget.withOverviewMode,
+              useWideViewPort: widget.useWideViewPort,
               scrollBar: widget.scrollBar,
               supportMultipleWindows: widget.supportMultipleWindows,
               appCacheEnabled: widget.appCacheEnabled,

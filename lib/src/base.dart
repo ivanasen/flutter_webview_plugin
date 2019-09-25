@@ -3,6 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_webview_plugin/src/javascript_channel.dart';
+
+import 'javascript_message.dart';
 
 const _kChannel = 'flutter_webview_plugin';
 
@@ -31,7 +34,16 @@ class FlutterWebviewPlugin {
   final _onScrollYChanged = StreamController<double>.broadcast();
   final _onProgressChanged = new StreamController<double>.broadcast();
   final _onHttpError = StreamController<WebViewHttpError>.broadcast();
+
   final _onDisabledWebviewTouched = StreamController<Null>.broadcast();
+
+  final _onPostMessage = StreamController<JavascriptMessage>.broadcast();
+
+  final Map<String, JavascriptChannel> _javascriptChannels =
+  // ignoring warning as min SDK version doesn't support collection literals yet
+  // ignore: prefer_collection_literals
+  Map<String, JavascriptChannel>();
+
 
   Future<Null> _handleMessages(MethodCall call) async {
     switch (call.method) {
@@ -50,8 +62,8 @@ class FlutterWebviewPlugin {
       case 'onScrollYChanged':
         _onScrollYChanged.add(call.arguments['yDirection']);
         break;
-      case "onProgressChanged":
-        _onProgressChanged.add(call.arguments["progress"]);
+      case 'onProgressChanged':
+        _onProgressChanged.add(call.arguments['progress']);
         break;
       case 'onState':
         _onStateChanged.add(
@@ -66,6 +78,10 @@ class FlutterWebviewPlugin {
         break;
       case 'onDisabledWebviewTouched':
         _onDisabledWebviewTouched.add(null);
+        break;
+      case 'javascriptChannelMessage':
+        _handleJavascriptChannelMessage(
+            call.arguments['channel'], call.arguments['message']);
         break;
     }
   }
@@ -118,9 +134,13 @@ class FlutterWebviewPlugin {
   /// - [invalidUrlRegex] is the regular expression of URLs that web view shouldn't load.
   /// For example, when webview is redirected to a specific URL, you want to intercept
   /// this process by stopping loading this URL and replacing webview by another screen.
-  Future<Null> launch(
-    String url, {
+  ///   Android only settings:
+  /// - [displayZoomControls]: display zoom controls on webview
+  /// - [withOverviewMode]: enable overview mode for Android webview ( setLoadWithOverviewMode )
+  /// - [useWideViewPort]: use wide viewport for Android webview ( setUseWideViewPort )
+  Future<Null> launch(String url, {
     Map<String, String> headers,
+    Set<JavascriptChannel> javascriptChannels,
     bool withJavascript,
     bool clearCache,
     bool clearCookies,
@@ -129,8 +149,10 @@ class FlutterWebviewPlugin {
     Rect rect,
     String userAgent,
     bool withZoom,
+    bool displayZoomControls,
     bool withLocalStorage,
     bool withLocalUrl,
+    bool withOverviewMode,
     bool scrollBar,
     bool supportMultipleWindows,
     bool appCacheEnabled,
@@ -149,6 +171,7 @@ class FlutterWebviewPlugin {
       'enableAppScheme': enableAppScheme ?? true,
       'userAgent': userAgent,
       'withZoom': withZoom ?? false,
+      'displayZoomControls': displayZoomControls ?? false,
       'withLocalStorage': withLocalStorage ?? true,
       'withLocalUrl': withLocalUrl ?? false,
       'scrollBar': scrollBar ?? true,
@@ -158,12 +181,28 @@ class FlutterWebviewPlugin {
       'useWideViewPort': useWideViewPort ?? false,
       'invalidUrlRegex': invalidUrlRegex,
       'geolocationEnabled': geolocationEnabled ?? false,
+      'withOverviewMode': withOverviewMode ?? false,
       'debuggingEnabled': debuggingEnabled ?? false,
     };
 
     if (headers != null) {
       args['headers'] = headers;
     }
+
+    _assertJavascriptChannelNamesAreUnique(javascriptChannels);
+
+    if (javascriptChannels != null) {
+      javascriptChannels.forEach((channel) {
+        _javascriptChannels[channel.name] = channel;
+      });
+    } else {
+      if (_javascriptChannels.isNotEmpty) {
+        _javascriptChannels.clear();
+      }
+    }
+
+    args['javascriptChannelNames'] =
+        _extractJavascriptChannelNames(javascriptChannels).toList();
 
     if (rect != null) {
       args['rect'] = {
@@ -184,7 +223,10 @@ class FlutterWebviewPlugin {
 
   /// Close the Webview
   /// Will trigger the [onDestroy] event
-  Future<Null> close() async => await _channel.invokeMethod('close');
+  Future<Null> close() async {
+    _javascriptChannels.clear();
+    await _channel.invokeMethod('close');
+  }
 
   /// Reloads the WebView.
   Future<Null> reload() async => await _channel.invokeMethod('reload');
@@ -202,8 +244,11 @@ class FlutterWebviewPlugin {
   Future<Null> show() async => await _channel.invokeMethod('show');
 
   // Reload webview with a url
-  Future<Null> reloadUrl(String url) async {
-    final args = <String, String>{'url': url};
+  Future<Null> reloadUrl(String url, {Map<String, String> headers}) async {
+    final args = <String, dynamic>{'url': url};
+    if (headers != null) {
+      args['headers'] = headers;
+    }
     await _channel.invokeMethod('reloadUrl', args);
   }
 
@@ -216,7 +261,7 @@ class FlutterWebviewPlugin {
       await _channel.invokeMethod('stopLoading');
 
   // Enables or disables touches to the webview
-  Future<Null> setWebviewTouchesEnabled(bool enabled) async {
+  setWebviewTouchesEnabled(bool enabled) async {
     final args = <String, bool>{'enabled': enabled};
     await _channel.invokeMethod('setWebviewTouchesEnabled', args);
   }
@@ -230,6 +275,7 @@ class FlutterWebviewPlugin {
     _onScrollXChanged.close();
     _onScrollYChanged.close();
     _onHttpError.close();
+    _onPostMessage.close();
     _instance = null;
   }
 
@@ -257,6 +303,29 @@ class FlutterWebviewPlugin {
       'height': rect.height,
     };
     await _channel.invokeMethod('resize', args);
+  }
+
+  Set<String> _extractJavascriptChannelNames(Set<JavascriptChannel> channels) {
+    final Set<String> channelNames = channels == null
+    // ignore: prefer_collection_literals
+        ? Set<String>()
+        : channels.map((JavascriptChannel channel) => channel.name).toSet();
+    return channelNames;
+  }
+
+  void _handleJavascriptChannelMessage(final String channelName,
+      final String message) {
+    _javascriptChannels[channelName]
+        .onMessageReceived(JavascriptMessage(message));
+  }
+
+  void _assertJavascriptChannelNamesAreUnique(
+      final Set<JavascriptChannel> channels) {
+    if (channels == null || channels.isEmpty) {
+      return;
+    }
+
+    assert(_extractJavascriptChannelNames(channels).length == channels.length);
   }
 }
 
